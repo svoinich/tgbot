@@ -33,23 +33,25 @@ bot.command('roll', async (ctx) => {
                     if (dice.count.value > 1) {
                         count = dice.count.value;
                     }
-                    message += `${count}d${dice.die.value} [`;
+                    message += `\`${count}d${dice.die.value}\` \\[`;
                     var dices_semicolon = '';
                     dice.rolls.forEach(function(dice2, index){
                         if (index > 0) {
                             dices_semicolon = ', '
                         }
-                        message+= `${dices_semicolon}${dice2.value}`;
+                        var roll = (dice2.critical) ? `\*${dice2.roll}\*` : `${dice2.roll}`;
+                        message+= `${dices_semicolon}${roll}`;
                     });
-                    message += `]\r\n`;
+                    message += `\\]\r\n`;
                 }
             });
             rolls.forEach(function(dice, index) {
                 if (dice.type === 'number') {
-                    message += `Modification: ${roll.ops[index - 1]} ${dice.value}\r\n`;
+                    var sign = '\\' + roll.ops[index - 1];
+                    message += `Modification: ${sign}${dice.value}\r\n`;
                 }
             });
-            message += `Result: ${roll.value}`;
+            message += `Result: \\${roll.value}`;
         }
         else
         {
@@ -58,20 +60,74 @@ bot.command('roll', async (ctx) => {
             if (roll.count.value > 1) {
                 count = roll.count.value;
             }
-            message += `${count}d${roll.die.value} [`;
+            message += `\`${count}d${roll.die.value}\` \\[`;
             const rolls = roll.rolls;
             rolls.forEach(function(dice, index) {
                 if (index > 0) {
                     semicolon = ', ';
                 }
-                message += `${semicolon}${dice.value}`
+                var roll = (dice.critical) ? `\*${dice.roll}\*` : `${dice.roll}`;
+                message += `${semicolon}${roll}`;
             });
-            message += `]\r\n`;
+            message += `\\]\r\n`;
         }
-        await ctx.telegram.sendMessage(ctx.message.chat.id, message);
+        await ctx.telegram.sendMessage(ctx.message.chat.id, message, { parse_mode: 'MarkdownV2' });
     } catch (error) {
         console.log('error', error)
         // await ctx.telegram.sendMessage(ctx.message.chat.id, 'Крик верблюда зовущего на помощь')
+    }
+});
+
+bot.command('d', async (ctx) => {
+    try {
+        const query = ctx.message.text.split(' ');
+        var modification = '';
+        if (query.length > 1) {
+            modification += query[query.length - 1];
+        }
+        var message = '';
+        const roll = diceRoller.roll('d20' + modification);
+        if (roll.ops) {
+            var dices = roll.dice;
+            dices.forEach(dice => {
+                if (dice.type === 'die') {
+                    const res = (dice.value === 20 || dice.value === 1) ? `\*${dice.value}\*` : `${dice.value}`;
+                    message += `\`d20\` \\[${res}\\]\r\n`;
+                }
+            });
+            dices.forEach((dice, index) => {
+                if (dice.type === 'number') {
+                    var sign = '\\' + roll.ops[index - 1] + dice.value;
+                    message += `Modification: ${sign}\r\n`;
+                }
+            });
+            message += `Result: \\${roll.value}`;
+        } else {
+            const rolls = roll.rolls[0],
+                res = (rolls.critical) ? `\*${rolls.roll}\*` : `${rolls.roll}`;
+            message += `\`d${rolls.die}\` \\[${res}\\]`;
+        }
+        await ctx.telegram.sendMessage(ctx.message.chat.id, message, { parse_mode: 'MarkdownV2' });
+    } catch (error) {
+        console.log('error', error)
+    }
+});
+
+bot.command('p', async (ctx) => {
+    try {
+        const query = ctx.message.text.split(' ');
+        var modification = '';
+        if (query.length > 1) {
+            modification += query[query.length - 1];
+        }
+        var message = '';
+        const roll = diceRoller.roll('d100' + modification);
+        const rolls = roll.rolls[0],
+            res = (rolls.critical) ? `\*${rolls.roll}\*` : `${rolls.roll}`;
+        message += `\`d${rolls.die}\` \\[${res}\\]`;
+        await ctx.telegram.sendMessage(ctx.message.chat.id, message, { parse_mode: 'MarkdownV2' });
+    } catch (error) {
+        console.log('error', error)
     }
 });
 
